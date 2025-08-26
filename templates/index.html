@@ -1,0 +1,858 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataViz Explorer - Advanced CSV Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            padding-top: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eaeaea;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background-color: #fafafa;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: #f0f4ff;
+        }
+        
+        .plot-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+        }
+        
+        .data-table {
+            font-size: 14px;
+        }
+        
+        .data-table th {
+            background-color: #f8f9fa;
+        }
+        
+        .custom-tooltip {
+            position: relative;
+        }
+        
+        .custom-tooltip .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .custom-tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .feature-card {
+            transition: all 0.3s;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row mb-4">
+            <div class="col">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="display-5 fw-bold text-primary"><i class="bi bi-bar-chart-fill me-2"></i>DataViz Explorer</h1>
+                    <div>
+                        <span class="badge bg-light text-dark"><i class="bi bi-github me-1"></i>v2.0</span>
+                    </div>
+                </div>
+                <p class="text-muted">Advanced CSV data analysis and visualization platform</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="row">
+            <div class="col">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload CSV File</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                            <div class="upload-area">
+                                <i class="bi bi-file-earmark-spreadsheet feature-icon" style="font-size: 48px;"></i>
+                                <h5>Drag & Drop your CSV file</h5>
+                                <p class="text-muted">or</p>
+                                <div class="mb-3">
+                                    <input class="form-control" type="file" id="file" name="file" accept=".csv" required>
+                                </div>
+                                <div class="form-text mb-3">Maximum file size: 100MB. Supported format: CSV</div>
+                                <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-lightning-charge-fill me-2"></i>Analyze Data</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if info %}
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Dataset Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card card">
+                                    <div class="stat-value">{{ info.rows }}</div>
+                                    <div class="stat-label">ROWS</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card card">
+                                    <div class="stat-value">{{ info.columns }}</div>
+                                    <div class="stat-label">COLUMNS</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card card">
+                                    <div class="stat-value">{{ numeric_cols|length }}</div>
+                                    <div class="stat-label">NUMERIC COLS</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card card">
+                                    <div class="stat-value">{{ categorical_cols|length }}</div>
+                                    <div class="stat-label">CATEGORICAL COLS</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>Column Information</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Column Name</th>
+                                            <th>Data Type</th>
+                                            <th>Missing Values</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for col in info.column_names %}
+                                        <tr>
+                                            <td>{{ col }}</td>
+                                            <td><span class="badge bg-info">{{ info.data_types[col] }}</span></td>
+                                            <td><span class="badge {% if info.missing_values[col] > 0 %}bg-warning{% else %}bg-success{% endif %}">{{ info.missing_values[col] }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-4">
+                <div class="sidebar">
+                    <h5 class="mb-4"><i class="bi bi-lightbulb me-2"></i>Features</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 col-lg-12 mb-3">
+                            <div class="feature-card card">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-graph-up feature-icon"></i>
+                                    <h6>Interactive Visualizations</h6>
+                                    <p class="text-muted small">Create various chart types with custom parameters</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-12 mb-3">
+                            <div class="feature-card card">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-filter-square feature-icon"></i>
+                                    <h6>Advanced Filtering</h6>
+                                    <p class="text-muted small">Filter data based on multiple conditions</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-12 mb-3">
+                            <div class="feature-card card">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-clipboard-data feature-icon"></i>
+                                    <h6>Statistical Analysis</h6>
+                                    <p class="text-muted small">Get detailed statistics for each column</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-12 mb-3">
+                            <div class="feature-card card">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-download feature-icon"></i>
+                                    <h6>Export Results</h6>
+                                    <p class="text-muted small">Download processed data and visualizations</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if info %}
+                    <div class="mt-4">
+                        <a href="/download_csv" class="btn btn-outline-primary w-100 mb-2"><i class="bi bi-download me-2"></i>Download CSV</a>
+                        <button class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#filterModal"><i class="bi bi-funnel me-2"></i>Filter Data</button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if info %}
+        <div class="row mt-4">
+            <div class="col">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button" role="tab">
+                            <i class="bi bi-table me-1"></i>Data Preview
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab">
+                            <i class="bi bi-calculator me-1"></i>Statistics
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="visualization-tab" data-bs-toggle="tab" data-bs-target="#visualization" type="button" role="tab">
+                            <i class="bi bi-bar-chart me-1"></i>Visualizations
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="custom-tab" data-bs-toggle="tab" data-bs-target="#custom" type="button" role="tab">
+                            <i class="bi bi-pencil-square me-1"></i>Custom Analysis
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content card shadow-sm p-4" id="myTabContent">
+                    <div class="tab-pane fade show active" id="preview" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>First 100 Rows</h5>
+                            <div class="form-text">Showing sample of your data</div>
+                        </div>
+                        <div class="table-responsive">
+                            {{ preview | safe }}
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="stats" role="tabpanel">
+                        {% if stats.numeric %}
+                        <h5 class="mb-3">Numeric Columns Statistics</h5>
+                        <div class="table-responsive">
+                            {{ stats.numeric | safe }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if stats.categorical %}
+                        <h5 class="mt-4 mb-3">Categorical Columns Statistics</h5>
+                        <div class="table-responsive">
+                            {{ stats.categorical | safe }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if stats.additional %}
+                        <h5 class="mt-4 mb-3">Advanced Statistics</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Skewness</th>
+                                        <th>Kurtosis</th>
+                                        <th>Variance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for col, values in stats.additional.items() %}
+                                    <tr>
+                                        <td>{{ col }}</td>
+                                        <td>{{ values.skewness }}</td>
+                                        <td>{{ values.kurtosis }}</td>
+                                        <td>{{ values.variance }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="visualization" role="tabpanel">
+                        <h5 class="mb-4">Automatic Visualizations</h5>
+                        
+                        {% if plot_files.histograms %}
+                        <div class="plot-container mb-4">
+                            <h6>Distribution of Numeric Variables</h6>
+                            <img src="{{ plot_files.histograms }}" class="img-fluid" alt="Histograms">
+                            <div class="mt-2">
+                                <a href="/download_plot/histograms" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Download</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if plot_files.boxplots %}
+                        <div class="plot-container mb-4">
+                            <h6>Box Plots of Numeric Variables</h6>
+                            <img src="{{ plot_files.boxplots }}" class="img-fluid" alt="Box Plots">
+                            <div class="mt-2">
+                                <a href="/download_plot/boxplots" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Download</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if plot_files.correlation %}
+                        <div class="plot-container mb-4">
+                            <h6>Correlation Matrix</h6>
+                            <img src="{{ plot_files.correlation }}" class="img-fluid" alt="Correlation Matrix">
+                            <div class="mt-2">
+                                <a href="/download_plot/correlation" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Download</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% for col in categorical_cols[:5] %}
+                        {% if plot_files['category_' + col] %}
+                        <div class="plot-container mb-4">
+                            <h6>Distribution of {{ col }}</h6>
+                            <img src="{{ plot_files['category_' + col] }}" class="img-fluid" alt="{{ col }} distribution">
+                            <div class="mt-2">
+                                <a href="/download_plot/category_{{ col }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Download</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="custom" role="tabpanel">
+                        <h5 class="mb-4">Create Custom Visualization</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Chart Parameters</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="plotForm">
+                                            <div class="mb-3">
+                                                <label for="plotType" class="form-label">Chart Type</label>
+                                                <select class="form-select" id="plotType" name="plot_type">
+                                                    <option value="scatter">Scatter Plot</option>
+                                                    <option value="line">Line Chart</option>
+                                                    <option value="bar">Bar Chart</option>
+                                                    <option value="histogram">Histogram</option>
+                                                    <option value="box">Box Plot</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="xAxis" class="form-label">X-Axis</label>
+                                                <select class="form-select" id="xAxis" name="x_axis">
+                                                    <option value="">Select column</option>
+                                                    {% for col in info.column_names %}
+                                                    <option value="{{ col }}">{{ col }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3" id="yAxisContainer">
+                                                <label for="yAxis" class="form-label">Y-Axis</label>
+                                                <select class="form-select" id="yAxis" name="y_axis">
+                                                    <option value="">Select column</option>
+                                                    {% for col in numeric_cols %}
+                                                    <option value="{{ col }}">{{ col }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="hue" class="form-label">Group By (Optional)</label>
+                                                <select class="form-select" id="hue" name="hue">
+                                                    <option value="">None</option>
+                                                    {% for col in categorical_cols %}
+                                                    <option value="{{ col }}">{{ col }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <button type="button" id="generatePlot" class="btn btn-primary w-100">
+                                                <i class="bi bi-magic me-1"></i>Generate Chart
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-7">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Chart Preview</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="plotResult" class="text-center py-5">
+                                            <i class="bi bi-bar-chart text-muted" style="font-size: 48px;"></i>
+                                            <p class="text-muted mt-2">Your chart will appear here</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Column Details</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            {% for col in info.column_names %}
+                                            <div class="col-md-3 mb-3">
+                                                <div class="card">
+                                                    <div class="card-body py-2">
+                                                        <h6 class="card-title mb-1">{{ col }}</h6>
+                                                        <p class="card-text small text-muted mb-1">
+                                                            Type: <span class="badge bg-info">{{ info.data_types[col] }}</span>
+                                                        </p>
+                                                        <button class="btn btn-sm btn-outline-primary column-details" data-column="{{ col }}">
+                                                            <i class="bi bi-info-circle me-1"></i>Details
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filter Modal -->
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Filter Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="filterContainer">
+                        <!-- Filters will be added here dynamically -->
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary mt-3" id="addFilter">
+                        <i class="bi bi-plus-circle me-1"></i>Add Filter
+                    </button>
+                    
+                    <div class="mt-4">
+                        <h6>Filtered Data Preview</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="filteredTable">
+                                <thead>
+                                    <tr>
+                                        <th>No filters applied yet</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="filterStats" class="text-muted small mt-2"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="applyFilters">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Details Modal -->
+    <div class="modal fade" id="columnDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Column Details: <span id="modalColumnName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="columnDetailsContent">
+                    <!-- Details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-5 py-4 text-center text-muted">
+        <p>DataViz Explorer &copy; 2023 | Advanced CSV Data Analysis Platform</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle plot type changes
+            const plotType = document.getElementById('plotType');
+            const yAxisContainer = document.getElementById('yAxisContainer');
+            
+            plotType.addEventListener('change', function() {
+                if (this.value === 'histogram') {
+                    yAxisContainer.style.display = 'none';
+                } else {
+                    yAxisContainer.style.display = 'block';
+                }
+            });
+            
+            // Generate plot
+            document.getElementById('generatePlot').addEventListener('click', function() {
+                const formData = new FormData(document.getElementById('plotForm'));
+                
+                fetch('/generate_plot', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        document.getElementById('plotResult').innerHTML = 
+                            `<img src="${data.plot_url}" class="img-fluid" alt="Custom Plot">`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+            
+            // Column details
+            document.querySelectorAll('.column-details').forEach(button => {
+                button.addEventListener('click', function() {
+                    const column = this.getAttribute('data-column');
+                    
+                    fetch('/get_column_stats', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `column=${encodeURIComponent(column)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Error: ' + data.error);
+                        } else {
+                            document.getElementById('modalColumnName').textContent = column;
+                            
+                            let content = '';
+                            if (data.type === 'numerical') {
+                                content = `
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Count:</strong> ${data.count}</p>
+                                            <p><strong>Mean:</strong> ${data.mean}</p>
+                                            <p><strong>Std Dev:</strong> ${data.std}</p>
+                                            <p><strong>Min:</strong> ${data.min}</p>
+                                            <p><strong>25th %ile:</strong> ${data['25%']}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Median:</strong> ${data['50%']}</p>
+                                            <p><strong>75th %ile:</strong> ${data['75%']}</p>
+                                            <p><strong>Max:</strong> ${data.max}</p>
+                                            <p><strong>Skewness:</strong> ${data.skewness}</p>
+                                            <p><strong>Kurtosis:</strong> ${data.kurtosis}</p>
+                                        </div>
+                                    </div>
+                                    <p><strong>Missing Values:</strong> ${data.missing}</p>
+                                    <p><strong>Unique Values:</strong> ${data.unique}</p>
+                                `;
+                            } else {
+                                content = `
+                                    <p><strong>Count:</strong> ${data.count}</p>
+                                    <p><strong>Unique Values:</strong> ${data.unique}</p>
+                                    <p><strong>Missing Values:</strong> ${data.missing}</p>
+                                    <p><strong>Top Categories:</strong></p>
+                                    <ul>
+                                `;
+                                
+                                for (const [key, value] of Object.entries(data.top_categories)) {
+                                    content += `<li>${key}: ${value}</li>`;
+                                }
+                                
+                                content += `</ul>`;
+                            }
+                            
+                            document.getElementById('columnDetailsContent').innerHTML = content;
+                            new bootstrap.Modal(document.getElementById('columnDetailsModal')).show();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+            
+            // Filter functionality
+            let filterCount = 0;
+            
+            document.getElementById('addFilter').addEventListener('click', function() {
+                filterCount++;
+                
+                const filterHtml = `
+                    <div class="card mb-3 filter-item" data-id="${filterCount}">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Column</label>
+                                    <select class="form-select filter-column">
+                                        <option value="">Select column</option>
+                                        {% for col in info.column_names %}
+                                        <option value="{{ col }}">{{ col }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Min Value</label>
+                                    <input type="number" class="form-control filter-min" placeholder="Min">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Max Value</label>
+                                    <input type="number" class="form-control filter-max" placeholder="Max">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-danger btn-sm remove-filter">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('filterContainer').insertAdjacentHTML('beforeend', filterHtml);
+                
+                // Add event listener to remove button
+                document.querySelector(`.filter-item[data-id="${filterCount}"] .remove-filter`).addEventListener('click', function() {
+                    this.closest('.filter-item').remove();
+                });
+            });
+            
+            // Apply filters
+            document.getElementById('applyFilters').addEventListener('click', function() {
+                const filters = {};
+                
+                document.querySelectorAll('.filter-item').forEach(item => {
+                    const column = item.querySelector('.filter-column').value;
+                    const min = item.querySelector('.filter-min').value;
+                    const max = item.querySelector('.filter-max').value;
+                    
+                    if (column) {
+                        if (!filters[column]) {
+                            filters[column] = {};
+                        }
+                        
+                        if (min) {
+                            filters[column].min = parseFloat(min);
+                        }
+                        
+                        if (max) {
+                            filters[column].max = parseFloat(max);
+                        }
+                    }
+                });
+                
+                fetch('/filter_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(filters)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        // Update filtered data preview
+                        const table = document.getElementById('filteredTable');
+                        const thead = table.querySelector('thead');
+                        const tbody = table.querySelector('tbody');
+                        
+                        // Clear previous content
+                        thead.innerHTML = '';
+                        tbody.innerHTML = '';
+                        
+                        if (data.sample_data.length > 0) {
+                            // Create header
+                            const headerRow = document.createElement('tr');
+                            for (const col of data.columns) {
+                                const th = document.createElement('th');
+                                th.textContent = col;
+                                headerRow.appendChild(th);
+                            }
+                            thead.appendChild(headerRow);
+                            
+                            // Create rows
+                            for (const row of data.sample_data) {
+                                const tr = document.createElement('tr');
+                                for (const col of data.columns) {
+                                    const td = document.createElement('td');
+                                    td.textContent = row[col];
+                                    tr.appendChild(td);
+                                }
+                                tbody.appendChild(tr);
+                            }
+                            
+                            // Update stats
+                            document.getElementById('filterStats').textContent = 
+                                `Showing ${Math.min(data.sample_data.length, 100)} of ${data.filtered_count} filtered rows`;
+                        } else {
+                            thead.innerHTML = '<tr><th>No data matches your filters</th></tr>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
